@@ -2,6 +2,9 @@
 
 Süeda Yurdakonar / Emre Atay Tümer. Proje önerisi: otel doluluk talebini tahmin eden, modeli veriye göre seçen ve LP ile kapasite/fiyat planı öneren çok ajanlı sistem.
 
+## Veri
+Antonio, N., De Almeida, A., Nunes, L. (2019). "Hotel booking demand datasets." Data in Brief, 22, 41–49. https://doi.org/10.1016/j.dib.2018.11.126
+
 ## Mimari karar
 Hesaplama Python'da, orkestrasyon n8n + Gemini'de. Ajanların araçları (`data`, `forecast`, `optimize`) saf Python fonksiyonları olarak yazılır; n8n'e daha sonra bir FastAPI katmanıyla HTTP uç noktası olarak açılır. Böylece çekirdek n8n'siz test edilebilir.
 Model seçimi LLM'e bırakılmaz: validasyon MAPE/RMSE'ye göre kod seçer, LLM sonucu yorumlar ve yönlendirir.
