@@ -1,0 +1,12 @@
+﻿pandas
+numpy
+statsmodels
+scikit-learn
+xgboost
+pulp
+matplotlib
+fastapi
+uvicorn
+google-genai
+python-dotenv
+pytest
