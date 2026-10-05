@@ -3,7 +3,7 @@ numpy
 statsmodels
 scikit-learn
 xgboost
-pulp
+pulp>=3.3,<4
 matplotlib
 fastapi
 uvicorn

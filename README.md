@@ -26,8 +26,17 @@ python -m venv .venv
 2. [x] Seri uçlarını kırp (15 Tem 2015 – 31 Ağu 2017, 779 gün)
 3. [x] Tahmin ajanı (`forecast.py`): seasonal-naive, ARIMA, SARIMA, RF, XGBoost; 28 gün ufuk, 4 katlı ileri-yönlü validasyon, MAPE ile seçim.
    Sonuç: Resort → RandomForest (MAPE 2.29), City → XGBoost (3.32). SARIMA(1,0,1)x(1,1,1,7) beklenenden kötü çıktı, parametreleri gözden geçirilmeli.
-4. [ ] Optimizasyon ajanı: tek problemle başla (overbooking seviyesi, PuLP). Not: veri setinde kapasite yok, varsayım olarak belgelenmeli
-5. [ ] Değerlendirme: sabit tek modeller ve kural tabanlı politika ile kıyas (gelir, geçmiş veride simülasyon)
+4. [x] Optimizasyon ajanı (`optimize.py`): günlük overbooking limiti MILP (PuLP/CBC); talep hatası ve gelme oranı senaryolu, min() ikili değişkenle tam modellendi.
+5. [x] Geriye dönük kıyas (`backtest.py`, son 112 gün, `python -m hotel_agent.backtest`). Gerçekleşen gelir:
+   | | Resort | City |
+   |---|---|---|
+   | overbooking yok | 1,17 M (taban) | 1,55 M (taban) |
+   | sabit %10 | +9,8% | +9,9% |
+   | kural: kapasite / ort. gelme oranı | **+37,5%** | **+60,4%** |
+   | MILP | +34,7% | +57,6% |
+
+   **Önemli:** MILP, gelme oranı kuralını geçemedi (yaklaşık -2%). Yalnızca daha az walk üretiyor (Resort 0, City 5 vs 13). Kazanç büyüklüğü, veri setindeki ~%40 iptal oranından ve varsayımlardan (kapasite = net doluluğun %90'lık dilimi, walk maliyeti = 1,5 × ADR, talebin kapasiteden bağımsız gözlendiği) kaynaklanıyor; mutlak yüzdeler gerçek otel için yorumlanmamalı.
+   Sıradaki: walk maliyeti ve kapasite duyarlılığı, senaryo sayısı.
 6. [ ] Raporlama/sohbet ajanı (Gemini) ve n8n akışı
 7. [ ] Rapor ve sunum
 

@@ -131,6 +131,22 @@ def select_model(
     return ModelSelection(scores, scores.index[0], horizon, n_folds, errors)
 
 
+def validation_errors(
+    y: pd.Series, model_name: str, horizon: int = HORIZON, n_folds: int = N_FOLDS
+) -> np.ndarray:
+    """Seçilen modelin ileri-yönlü validasyondaki göreli hataları (gerçek/tahmin - 1).
+
+    Optimizasyon ajanı bunları talep belirsizliği senaryoları olarak kullanır.
+    """
+    fn = CANDIDATES[model_name]
+    errs = []
+    for c in [len(y) - horizon * k for k in range(n_folds, 0, -1)]:
+        train, test = y.iloc[:c], y.iloc[c : c + horizon]
+        pred = np.maximum(fn(train, test.index), 1)
+        errs.append(test.to_numpy() / pred - 1)
+    return np.concatenate(errs)
+
+
 def forecast(y: pd.Series, model_name: str, horizon: int = HORIZON) -> pd.Series:
     """Seçilen modeli tüm seriyle eğitip y'nin bitişinden sonraki `horizon` günü tahmin eder."""
     future = pd.date_range(y.index[-1] + pd.Timedelta(days=1), periods=horizon, freq="D")
