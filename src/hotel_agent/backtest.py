@@ -31,24 +31,39 @@ def default_params(bookings: pd.DataFrame, hotel: str, net: pd.Series, walk_mult
     )
 
 
-def run_backtest(hotel: str, n_folds: int = 4, horizon: int = HORIZON, params: Params | None = None):
+def prepare(hotel: str, n_folds: int = 4, horizon: int = HORIZON) -> dict:
+    """Varsayımlardan bağımsız, pahalı kısım: model seçimi, fold tahminleri, hata dağılımları."""
     bookings = load_bookings()
     net = daily_occupancy(bookings, hotel)
     gross = daily_occupancy(bookings, hotel, include_canceled=True).reindex(net.index)
     show_rate = (net / gross.clip(lower=1)).clip(upper=1)
-    params = params or default_params(bookings, hotel, net)
 
     first_cut = len(gross) - horizon * n_folds
     model = select_model(gross.iloc[:first_cut], horizon, n_folds=2).best
-
-    rows = []
+    folds = []
     for k in range(n_folds):
         cut = first_cut + k * horizon
         train = gross.iloc[:cut]
-        test_idx = gross.index[cut : cut + horizon]
-        pred = forecast(train, model, horizon).clip(lower=0)
-        errs = validation_errors(train, model, horizon, n_folds=3)
-        scen = make_scenarios(errs, show_rate.iloc[:cut].to_numpy(), seed=k)
+        folds.append(
+            {
+                "cut": cut,
+                "test_idx": gross.index[cut : cut + horizon],
+                "pred": forecast(train, model, horizon).clip(lower=0),
+                "errs": validation_errors(train, model, horizon, n_folds=3),
+            }
+        )
+    return dict(hotel=hotel, bookings=bookings, net=net, gross=gross, show_rate=show_rate, model=model, folds=folds)
+
+
+def run_backtest(hotel: str, n_folds: int = 4, horizon: int = HORIZON, params: Params | None = None, prepared=None):
+    p = prepared or prepare(hotel, n_folds, horizon)
+    gross, show_rate, model = p["gross"], p["show_rate"], p["model"]
+    params = params or default_params(p["bookings"], hotel, p["net"])
+
+    rows = []
+    for k, f in enumerate(p["folds"]):
+        cut, test_idx, pred = f["cut"], f["test_idx"], f["pred"]
+        scen = make_scenarios(f["errs"], show_rate.iloc[:cut].to_numpy(), seed=k)
         limits = {
             "optimized": optimize_limits(pred, params, scen),
             "rule_show_rate": show_rate_limits(test_idx, params, float(show_rate.iloc[:cut].mean())),

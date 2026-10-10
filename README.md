@@ -36,7 +36,14 @@ python -m venv .venv
    | MILP | +34,7% | +57,6% |
 
    **Önemli:** MILP, gelme oranı kuralını geçemedi (yaklaşık -2%). Yalnızca daha az walk üretiyor (Resort 0, City 5 vs 13). Kazanç büyüklüğü, veri setindeki ~%40 iptal oranından ve varsayımlardan (kapasite = net doluluğun %90'lık dilimi, walk maliyeti = 1,5 × ADR, talebin kapasiteden bağımsız gözlendiği) kaynaklanıyor; mutlak yüzdeler gerçek otel için yorumlanmamalı.
-   Sıradaki: walk maliyeti ve kapasite duyarlılığı, senaryo sayısı.
+   **Duyarlılık (yalnızca Resort, `reports/sensitivity.csv`)**: MILP'in geliri, gelme oranı kuralına göre (%), kapasite dilimi 0,9:
+   | walk maliyeti (x ADR) | 0,5 | 1 | 1,5 | 3 | 5 | 10 |
+   |---|---|---|---|---|---|---|
+   | MILP vs kural | +4,7 | -0,6 | -1,9 | -7,7 | -12,0 | -14,4 |
+
+   Yorum: MILP yalnızca walk maliyeti düşükken (≤ ~1 x ADR) kuralı geçiyor. Maliyet arttıkça MILP aşırı temkinli davranıp gelir kaybediyor; gerçekleşen walk sayısı kuralda da 0-5 gibi çok az, yani senaryolar riski gerçekte olduğundan büyük gösteriyor olabilir. Kapasite dilimi sonucu çok değiştirmedi (0,9 ve 0,95 aynı kapasiteye denk geldi).
+   Sınırlar: City için çalıştırılmadı; 18 senaryo Resort'ta ~51 dk sürdü (günler birbirinden bağımsız olduğu için MILP'i günlük küçük modellere bölmek hızlandırır).
+   Sıradaki: MILP'i günlük modellere bölüp hızlandırmak, City duyarlılığı, senaryo üretiminin kalibrasyonu.
 6. [ ] Raporlama/sohbet ajanı (Gemini) ve n8n akışı
 7. [ ] Rapor ve sunum
 
