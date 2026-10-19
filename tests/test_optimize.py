@@ -36,6 +36,21 @@ def test_uncertain_show_rate_overbooks_less_than_certain_mean():
     assert 100 < lim.iloc[0] < 200
 
 
+def _expected_profit(L, g, sc):
+    a = np.minimum(L, np.minimum(g * (1 + sc.demand_err), 2 * P.capacity))
+    shows = a * sc.show_rate
+    return np.mean(P.price * np.minimum(shows, P.capacity) - P.walk_cost * np.maximum(shows - P.capacity, 0))
+
+
+def test_milp_matches_brute_force_over_all_limits():
+    rng = np.random.default_rng(1)
+    sc = Scenarios(rng.normal(0, 0.15, 40), rng.uniform(0.45, 0.85, 40))
+    for g in (60.0, 120.0, 180.0):
+        lim = optimize_limits(pd.Series([g], index=_idx()), P, sc).iloc[0]
+        best = max(_expected_profit(L, g, sc) for L in range(0, 2 * P.capacity + 1))
+        assert _expected_profit(lim, g, sc) >= best - 1e-6
+
+
 def test_realized_revenue_walks_guests_above_capacity():
     idx = _idx(2)
     limits = pd.Series([150, 150], index=idx)

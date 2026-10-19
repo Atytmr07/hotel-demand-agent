@@ -81,7 +81,8 @@ def _tabular(make_model):
 CANDIDATES = {
     "seasonal_naive": _seasonal_naive,
     "ARIMA(2,1,2)": _sarimax((2, 1, 2), (0, 0, 0, 0)),
-    "SARIMA(1,0,1)x(1,1,1,7)": _sarimax((1, 0, 1), (1, 1, 1, 7)),
+    # airline tipi; 4 aday arasından seçildi (1,0,1)x(1,1,1,7) Resort 5.8 / City 11.0 MAPE verdi, bu 3.8 / 4.0
+    "SARIMA(1,1,1)x(0,1,1,7)": _sarimax((1, 1, 1), (0, 1, 1, 7)),
     "RandomForest": _tabular(
         lambda: RandomForestRegressor(n_estimators=300, min_samples_leaf=3, random_state=0, n_jobs=-1)
     ),
