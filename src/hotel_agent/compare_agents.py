@@ -23,7 +23,9 @@ CLASSES = {
 TOOLS = [t for ts in CLASSES.values() for t in ts]
 CLASS_OF = {t: c for c, ts in CLASSES.items() for t in ts}
 MARKERS = {"Frontier assistants": "o", "Autonomous task agents": "s", "Workflow agent platforms": "^"}
-SHADES = {"Frontier assistants": "#222222", "Autonomous task agents": "#777777", "Workflow agent platforms": "#aaaaaa"}
+SHADES = {"Frontier assistants": "#0072B2", "Autonomous task agents": "#D55E00", "Workflow agent platforms": "#009E73"}  # Okabe-Ito
+NAVY = "#1F3864"
+PROFILE_COLORS = ["#0072B2", "#E69F00", "#009E73"]
 UNCERTAINTY = 1.0  # +/- points on the 0-10 scale; sources conflict and scores are judgements
 
 
@@ -157,25 +159,26 @@ def _scatter(d, y, ylabel, title, path):
     fig, ax = plt.subplots(figsize=(6.6, 5.0))
     for cls, ts in CLASSES.items():
         for t in ts:
-            ax.errorbar(d.loc[t, "cost"], d.loc[t, y], xerr=UNCERTAINTY, yerr=UNCERTAINTY, fmt="none", ecolor="#bbbbbb", lw=0.9, capsize=2, zorder=1)
+            ax.errorbar(d.loc[t, "cost"], d.loc[t, y], xerr=UNCERTAINTY, yerr=UNCERTAINTY, fmt="none", ecolor=SHADES[cls], alpha=0.35, lw=1.1, capsize=2, zorder=1)
+    ax.axvspan(1, 5, ymin=(7.5 - 3.5) / 6.5, ymax=1, color="#E3F4EA", zorder=0)  # cheap-and-strong region
     for cls, ts in CLASSES.items():
         xs = [d.loc[t, "cost"] for t in ts]
         ys = [d.loc[t, y] for t in ts]
-        ax.scatter(xs, ys, marker=MARKERS[cls], s=70, color=SHADES[cls], edgecolor="black", linewidth=1.0, zorder=3, label=cls)
+        ax.scatter(xs, ys, marker=MARKERS[cls], s=95, color=SHADES[cls], edgecolor="white", linewidth=1.2, zorder=3, label=cls)
         for t in ts:
             dx, dy, ha = OFFS[(y, t)]
-            ax.annotate(t, (d.loc[t, "cost"], d.loc[t, y]), textcoords="offset points", xytext=(dx, dy), ha=ha, fontsize=9.5, color="black")
-    ax.axvline(5, color="black", lw=0.6, ls=":")
-    ax.axhline(5, color="black", lw=0.6, ls=":")
+            ax.annotate(t, (d.loc[t, "cost"], d.loc[t, y]), textcoords="offset points", xytext=(dx, dy), ha=ha, fontsize=9.5, color=SHADES[cls], fontweight="bold")
+    ax.axvline(5, color=NAVY, lw=0.7, ls=":")
+    ax.axhline(7.5, color=NAVY, lw=0.7, ls=":")
     ax.set_xlim(1, 9.5)
     ax.set_ylim(3.5, 10)
     ax.set_xlabel("Cost  (0 = cheap, 10 = expensive)")
     ax.set_ylabel(ylabel)
-    ax.set_title(title)
-    ax.text(1.15, 9.65, "cheap and strong", fontsize=8.5, style="italic")
-    ax.legend(loc="lower left", fontsize=8.5, frameon=True, edgecolor="black")
-    ax.text(0.99, 0.01, "axes zoomed; grey bars: ±1 uncertainty", transform=ax.transAxes, ha="right", fontsize=7.5)
-    ax.grid(alpha=0.25, color="black", lw=0.4)
+    ax.set_title(title, color=NAVY, fontweight="bold")
+    ax.text(1.15, 9.65, "cheap and strong", fontsize=8.5, style="italic", color="#2E7D4F")
+    ax.legend(loc="lower left", fontsize=8.5, frameon=True, edgecolor="#999999")
+    ax.text(0.99, 0.01, "axes zoomed; faint bars: ±1 uncertainty", transform=ax.transAxes, ha="right", fontsize=7.5, color="#555555")
+    ax.grid(alpha=0.3, color="#9bb0c8", lw=0.5)
     fig.tight_layout()
     fig.savefig(path, dpi=220)
     plt.close(fig)
@@ -189,7 +192,7 @@ def fig_heatmap(path):
             names.append(f"[{dim[:3].upper()}] {crit}")
     m = np.array(rows)
     fig, ax = plt.subplots(figsize=(7.6, 6.4))
-    im = ax.imshow(m, cmap="Greys", vmin=0, vmax=6.5, aspect="auto")
+    im = ax.imshow(m, cmap="YlGnBu", vmin=0, vmax=6.0, aspect="auto")
     ax.set_xticks(range(len(TOOLS)))
     ax.set_xticklabels(TOOLS, rotation=35, ha="right")
     ax.set_yticks(range(len(names)))
@@ -208,16 +211,16 @@ def fig_ranking(df, mc, path):
     fig, ax = plt.subplots(figsize=(7.0, 4.8))
     for i, t in enumerate(order):
         cls = CLASS_OF[t]
-        ax.barh(i, df.loc[t, "score[Balanced]"], color=SHADES[cls], edgecolor="black", height=0.62)
+        ax.barh(i, df.loc[t, "score[Balanced]"], color=SHADES[cls], edgecolor="white", height=0.62)
         ax.text(df.loc[t, "score[Balanced]"] + 0.05, i, f"{df.loc[t, 'score[Balanced]']:.2f}   (rank {int(summ.loc[t, 'p05'])}-{int(summ.loc[t, 'p95'])})", va="center", fontsize=8.5)
     ax.set_yticks(range(len(order)))
     ax.set_yticklabels(order)
     ax.set_xlim(4.5, 9.2)
     ax.set_xlabel("Overall score, balanced profile (0-10); in brackets: 90% rank interval under ±1 score noise")
     ax.xaxis.label.set_fontsize(8.5)
-    handles = [plt.Rectangle((0, 0), 1, 1, color=SHADES[c], ec="black") for c in CLASSES]
-    ax.legend(handles, list(CLASSES), loc="lower right", fontsize=8.5, edgecolor="black")
-    ax.grid(axis="x", alpha=0.25, color="black", lw=0.4)
+    handles = [plt.Rectangle((0, 0), 1, 1, color=SHADES[c]) for c in CLASSES]
+    ax.legend(handles, list(CLASSES), loc="lower right", fontsize=8.5, edgecolor="#999999")
+    ax.grid(axis="x", alpha=0.3, color="#9bb0c8", lw=0.5)
     fig.tight_layout()
     fig.savefig(path, dpi=220)
     plt.close(fig)
@@ -229,7 +232,7 @@ def fig_rank_prob(mc, path):
     k = len(TOOLS)
     m = np.array([[(mc[t] == r).mean() for r in range(1, k + 1)] for t in order])
     fig, ax = plt.subplots(figsize=(6.8, 4.8))
-    ax.imshow(m, cmap="Greys", vmin=0, vmax=max(0.6, m.max()), aspect="auto")
+    ax.imshow(m, cmap="Blues", vmin=0, vmax=max(0.6, m.max()), aspect="auto")
     ax.set_xticks(range(k))
     ax.set_xticklabels(range(1, k + 1))
     ax.set_yticks(range(k))
@@ -251,15 +254,14 @@ def fig_profiles(df, path):
     order = df["score[Balanced]"].sort_values(ascending=False).index.tolist()
     fig, ax = plt.subplots(figsize=(7.6, 4.2))
     w = 0.26
-    hatches = ["", "///", "..."]
     for i, c in enumerate(cols):
-        ax.bar([j + (i - 1) * w for j in range(len(order))], df.loc[order, c], w, label=c[6:-1], color="white", edgecolor="black", hatch=hatches[i])
+        ax.bar([j + (i - 1) * w for j in range(len(order))], df.loc[order, c], w, label=c[6:-1], color=PROFILE_COLORS[i], edgecolor="white")
     ax.set_xticks(range(len(order)))
     ax.set_xticklabels(order, rotation=25, ha="right")
     ax.set_ylabel("Overall score (0-10)")
     ax.set_ylim(3, 9.2)
-    ax.legend(ncol=3, loc="upper right", fontsize=8.5, edgecolor="black")
-    ax.grid(axis="y", alpha=0.25, color="black", lw=0.4)
+    ax.legend(ncol=3, loc="upper right", fontsize=8.5, edgecolor="#999999")
+    ax.grid(axis="y", alpha=0.3, color="#9bb0c8", lw=0.5)
     fig.tight_layout()
     fig.savefig(path, dpi=220)
     plt.close(fig)

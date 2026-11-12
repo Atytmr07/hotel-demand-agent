@@ -3,6 +3,7 @@ from pathlib import Path
 
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
@@ -11,13 +12,15 @@ from hotel_agent import compare_agents as ca
 ROOT = Path(__file__).resolve().parents[2]
 REP = ROOT / "reports"
 FONT = "Times New Roman"
-BLACK = RGBColor(0, 0, 0)
+TEXT = RGBColor(0x1A, 0x1A, 0x1A)  # body text: near-black for readability
+NAVY = RGBColor(0x1F, 0x38, 0x64)  # headings, title, table headers
+SLATE = RGBColor(0x44, 0x54, 0x6A)  # captions
 
 
-def _font(run, size=None, bold=None, italic=None):
+def _font(run, size=None, bold=None, italic=None, color=TEXT):
     run.font.name = FONT
     run._element.rPr.rFonts.set(qn("w:eastAsia"), FONT)
-    run.font.color.rgb = BLACK
+    run.font.color.rgb = color
     if size:
         run.font.size = Pt(size)
     if bold is not None:
@@ -26,21 +29,44 @@ def _font(run, size=None, bold=None, italic=None):
         run.italic = italic
 
 
-def para(doc, text, size=11, bold=False, italic=False, align=WD_ALIGN_PARAGRAPH.JUSTIFY, space_after=6, style=None):
+def para(doc, text, size=11, bold=False, italic=False, align=WD_ALIGN_PARAGRAPH.JUSTIFY, space_after=6, style=None, color=TEXT):
     p = doc.add_paragraph(style=style)
     p.alignment = align
     p.paragraph_format.space_after = Pt(space_after)
     p.paragraph_format.line_spacing = 1.08
-    _font(p.add_run(text), size, bold, italic)
+    _font(p.add_run(text), size, bold, italic, color)
     return p
+
+
+def _border(p, color="1F3864", sz=8, edge="bottom"):
+    ppr = p._p.get_or_add_pPr()
+    b = OxmlElement("w:pBdr")
+    e = OxmlElement(f"w:{edge}")
+    e.set(qn("w:val"), "single")
+    e.set(qn("w:sz"), str(sz))
+    e.set(qn("w:space"), "1")
+    e.set(qn("w:color"), color)
+    b.append(e)
+    ppr.append(b)
+
+
+def _shade(cell, fill):
+    tcpr = cell._tc.get_or_add_tcPr()
+    s = OxmlElement("w:shd")
+    s.set(qn("w:val"), "clear")
+    s.set(qn("w:color"), "auto")
+    s.set(qn("w:fill"), fill)
+    tcpr.append(s)
 
 
 def head(doc, text, level=1):
     p = doc.add_paragraph()
-    p.paragraph_format.space_before = Pt(12 if level == 1 else 8)
+    p.paragraph_format.space_before = Pt(14 if level == 1 else 8)
     p.paragraph_format.space_after = Pt(4)
     p.paragraph_format.keep_with_next = True
-    _font(p.add_run(text), 13 if level == 1 else 11.5, bold=True, italic=(level == 2))
+    _font(p.add_run(text), 14 if level == 1 else 11.5, bold=True, italic=(level == 2), color=NAVY)
+    if level == 1:
+        _border(p, "9FB4D6", 6)
     return p
 
 
@@ -53,19 +79,22 @@ def bullets(doc, items):
 
 def table(doc, header, rows, caption=None, size=9):
     if caption:
-        c = para(doc, caption, size=10, bold=True, align=WD_ALIGN_PARAGRAPH.LEFT, space_after=3)
+        c = para(doc, caption, size=10, bold=True, align=WD_ALIGN_PARAGRAPH.LEFT, space_after=3, color=NAVY)
         c.paragraph_format.keep_with_next = True
     t = doc.add_table(rows=1, cols=len(header))
     t.style = "Table Grid"
     for i, h in enumerate(header):
         cell = t.rows[0].cells[i]
         cell.text = ""
-        _font(cell.paragraphs[0].add_run(str(h)), size, bold=True)
-    for row in rows:
+        _font(cell.paragraphs[0].add_run(str(h)), size, bold=True, color=NAVY)
+        _shade(cell, "D6E4F5")
+    for n, row in enumerate(rows):
         cells = t.add_row().cells
         for i, v in enumerate(row):
             cells[i].text = ""
             _font(cells[i].paragraphs[0].add_run(str(v)), size)
+            if n % 2 == 1:
+                _shade(cells[i], "F3F7FC")
     doc.add_paragraph().paragraph_format.space_after = Pt(2)
 
 
@@ -73,7 +102,7 @@ def figure(doc, name, caption, width=14.5):
     doc.add_picture(str(REP / name), width=Cm(width))
     doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
     doc.paragraphs[-1].paragraph_format.keep_with_next = True
-    para(doc, caption, size=10, italic=True, align=WD_ALIGN_PARAGRAPH.CENTER, space_after=10)
+    para(doc, caption, size=10, italic=True, align=WD_ALIGN_PARAGRAPH.CENTER, space_after=10, color=SLATE)
 
 
 def main():
@@ -94,9 +123,10 @@ def main():
         s.top_margin = s.bottom_margin = Cm(2.2)
 
     t = para(doc, "Comparing Eight AI Agents on Capability, Precision and Cost, with a Hotel Overbooking Case Study",
-             size=17, bold=True, align=WD_ALIGN_PARAGRAPH.CENTER, space_after=4)
+             size=18, bold=True, align=WD_ALIGN_PARAGRAPH.CENTER, space_after=4, color=NAVY)
     para(doc, "Süeda Yurdakonar (230203006) and Emre Atay Tümer (240203054)", size=11, align=WD_ALIGN_PARAGRAPH.CENTER, space_after=0)
-    para(doc, "IE 4023, 2nd Report, November 2026", size=10, italic=True, align=WD_ALIGN_PARAGRAPH.CENTER, space_after=10)
+    p_ = para(doc, "IE 4023, 2nd Report, November 2026", size=10, italic=True, align=WD_ALIGN_PARAGRAPH.CENTER, space_after=10, color=SLATE)
+    _border(p_, "1F3864", 12)
 
     # ---------------- abstract ----------------
     head(doc, "Abstract", 1)
@@ -112,7 +142,7 @@ def main():
         "limits with a mixed-integer program, and show that its main conclusion depends on one assumed cost.",
     )
     p = para(doc, "", space_after=8)
-    _font(p.add_run("Keywords: "), 10.5, bold=True)
+    _font(p.add_run("Keywords: "), 10.5, bold=True, color=NAVY)
     _font(p.add_run("AI agents, agent comparison, capability, cost, ranking uncertainty, demand forecasting, overbooking, MILP"), 10.5, italic=True)
 
     # ---------------- 1 introduction ----------------
@@ -361,7 +391,12 @@ def main():
         para(doc, r_, size=10, align=WD_ALIGN_PARAGRAPH.LEFT, space_after=2)
 
     out = REP / "AI_agents_comparison_article.docx"
-    doc.save(out)
+    for n in range(2, 20):  # the file may be open in Word; fall back to a new version name
+        try:
+            doc.save(out)
+            break
+        except PermissionError:
+            out = REP / f"AI_agents_comparison_article_v{n}.docx"
     print(out)
 
 
