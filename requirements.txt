@@ -10,3 +10,4 @@ uvicorn
 google-genai
 python-dotenv
 pytest
+python-docx
